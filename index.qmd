@@ -1,0 +1,30 @@
+---
+title: "Course Projects"
+format: html
+
+---
+
+
+<div style="text-align: center;">
+
+## Viktoria Axelsson
+
+
+
+### About Me
+
+I'm 25, from Sweden, and currently getting my Master's degree in Business Analytics at *Baruch College*. I also have a part time operations role in the travel and lifestyle industry. 
+
+Connect with me on LinkedIn: [Here](https://www.linkedin.com/in/viktoria-axelsson-868662223)
+
+![](profile.jpeg)
+
+</div>
+
+```{r}
+#| include: false
+1+1
+```
+--------------
+Last Updated: `r format(Sys.time(), "%A %m %d, %Y at %H:%M%p")`
+
