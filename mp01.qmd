@@ -13,6 +13,12 @@ format: html
 
 library(dplyr)
 library(DT)
+library(readr)
+library(lubridate)
+library(stringr)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
 
 if(!dir.exists(file.path("data", "mp01"))){
     dir.create(file.path("data", "mp01"), showWarnings=FALSE, recursive=TRUE)

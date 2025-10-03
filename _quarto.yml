@@ -10,9 +10,9 @@ website:
   navbar:
     background: primary
     search: false
-  right:
-    - text: "MiniProject 01"
-      href: "mp01.qmd"
+    items:
+      - text: "MiniProject 01"
+        href: "mp01.qmd"
     
 format:
   html:
