@@ -1,24 +1,30 @@
 ---
 title: "Gourmet Cheeseburgers Across the Globe: Exploring the Most Popular Programming on Netflix"
-format: html 
+format: 
+  html:
+    code-fold: true     
+    code-summary: "Code"
 ---
 
 
 --------------
 
-### Acquire Data and Improve the Two Data Objects 
+### Acquire Data and Improve the Data Objects 
 <br>
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r setup}
+#| include: false
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(lubridate)
+  library(kableExtra)
+  library(DT)
+  library(readr)
+  library(stringr)
+  library(knitr)
+
+})
 #Acquire Data: Global Top 10 and Country Wide Top 10 
 
-library(dplyr)
-library(DT)
-library(readr)
-library(lubridate)
-library(stringr)
-library(knitr)
-library(kableExtra)
-library(tidyverse)
 
 if(!dir.exists(file.path("data", "mp01"))){
     dir.create(file.path("data", "mp01"), showWarnings=FALSE, recursive=TRUE)
@@ -39,31 +45,32 @@ if(!file.exists(COUNTRY_TOP_10_FILENAME)){
     download.file("https://www.netflix.com/tudum/top10/data/all-weeks-countries.tsv", 
                   destfile=COUNTRY_TOP_10_FILENAME)
 }
-```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 if(!require("tidyverse")) install.packages("tidyverse")
 library(readr)
-library(dplyr)
 
 GLOBAL_TOP_10 <- read_tsv(GLOBAL_TOP_10_FILENAME)
 
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
 GLOBAL_TOP_10 <- GLOBAL_TOP_10 |>
     mutate(season_title = if_else(season_title == "N/A", NA_character_, season_title))
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 COUNTRY_TOP_10 <- read_tsv(COUNTRY_TOP_10_FILENAME, na = "N/A")
 ```
 
 **Introduce DT Package**
 <br>
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
+
 library(DT)
 GLOBAL_TOP_10 |> 
     head(n=20) |>
@@ -72,7 +79,8 @@ GLOBAL_TOP_10 |>
 
 **Change Column Names Weekly Hours Viewed instead of weekly_hours_viewed & no comas and legibility aids**
 <br>
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
+
 library(stringr)
 format_titles <- function(df){
     colnames(df) <- str_replace_all(colnames(df), "_", " ") |> str_to_title()
@@ -88,7 +96,8 @@ GLOBAL_TOP_10 |>
 
 **Drop the season_title**
 <br>
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
+
 GLOBAL_TOP_10 |> 
     select(-season_title) |>
     format_titles() |>
@@ -99,7 +108,8 @@ GLOBAL_TOP_10 |>
 
 **Added Runtime in (Minutes)**
 <br>
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
+
 GLOBAL_TOP_10 |> 
     mutate(`runtime_(minutes)` = round(60 * runtime)) |>
     select(-season_title, 
@@ -116,7 +126,7 @@ GLOBAL_TOP_10 |>
 
 1.  How many different countries does Netflix operate in?
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 library(dplyr)
 
 num_countries <- COUNTRY_TOP_10 |> 
@@ -130,7 +140,7 @@ num_countries <- COUNTRY_TOP_10 |>
 
 2.  Which non-English-language film has spent the most cumulative weeks in the global top 10? How many weeks did it spend?
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 library(DT)
 top_non_english_film <- GLOBAL_TOP_10 |>
   filter(
@@ -145,7 +155,7 @@ top_non_english_film <- GLOBAL_TOP_10 |>
 
 3.  What is the longest film (English or non-English) to have ever appeared in the Netflix global Top 10? How long is it in minutes?
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 top_length_film <- GLOBAL_TOP_10 |>
   filter(!is.na(runtime)) |>
   mutate(runtime_minutes = runtime * 60)|>
@@ -158,7 +168,7 @@ top_length_film <- GLOBAL_TOP_10 |>
 
 4.  For each of the four categories, what program has the most total hours of global viewership?
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 library(dplyr)
 library(knitr)
 
@@ -179,7 +189,7 @@ kable(top_category_viewership %>%
 
 5.  Which TV show had the longest run in a country’s Top 10? How long was this run and in what country did it occur?
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 longest_run <- COUNTRY_TOP_10 |>
   slice_max(order_by = cumulative_weeks_in_top_10, n = 1)
 ```
@@ -192,7 +202,7 @@ longest_run <- COUNTRY_TOP_10 |>
 
 6.  Netflix provides over 200 weeks of service history for all but one country in our data set. Which country is this and when did Netflix cease operations in that country?
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 country_weeks <- COUNTRY_TOP_10 |>
   group_by(country_name) |>
   summarise(
@@ -209,7 +219,7 @@ country_weeks <- COUNTRY_TOP_10 |>
 
 7.  What is the total viewership of the TV show Squid Game? Note that there are three seasons total and we are looking for the total number of hours watched across all seasons.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 Squidgame_viewership <- GLOBAL_TOP_10 |>
   filter(show_title=="Squid Game") |>
   summarise(
@@ -223,7 +233,7 @@ Squidgame_viewership <- GLOBAL_TOP_10 |>
 
 8.  The movie Red Notice has a runtime of 1 hour and 58 minutes. Approximately how many views did it receive in 2021? Note that Netflix does not provide the weekly_views values that far back in the past, but you can compute it yourself using the total view time and the runtime.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 Rednotice_views <- GLOBAL_TOP_10 |>
   filter(show_title=="Red Notice")|> 
   summarise(
@@ -239,12 +249,10 @@ Rednotice_views <- GLOBAL_TOP_10 |>
 
 9.  How many Films reached Number 1 in the US but did not originally debut there? That is, find films that first appeared on the Top 10 chart at, e.g., Number 4 but then became more popular and eventually hit Number 1? What is the most recent film to pull this off?
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 films_US <- COUNTRY_TOP_10 |>
   filter(category=="Films", country_name=="United States")
-```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 debut_ranks <-films_US |> 
   group_by(show_title) |>
   summarise(
@@ -252,10 +260,7 @@ debut_ranks <-films_US |>
     debut_rank = weekly_rank[week==debut_week],
     .groups = "drop"
   )
-  
-```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 top_one  <- films_US|> 
   group_by(show_title) |>
   summarise(
@@ -264,16 +269,11 @@ top_one  <- films_US|>
     .groups="drop"
   )
 
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 film_not_debut_one = debut_ranks|> 
   inner_join(top_one, by = "show_title") |> 
   filter(number_one,debut_rank > 1) 
 
-```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 most_recent = film_not_debut_one|> 
   arrange(desc(last_week)) |> 
   slice(1) 
@@ -287,7 +287,7 @@ most_recent = film_not_debut_one|>
 
 10. Which TV show/season hit the top 10 in the most countries in its debut week? In how many countries did it chart?
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 debut_top_one <- COUNTRY_TOP_10 %>%
   filter(category %in% c("TV", "TV (Non-English)")) %>%
   group_by(show_title, country_iso2) %>%
@@ -324,13 +324,11 @@ top_countries <- debut_top_one$total_countries[1]
 </p>
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 strangerthings_weeks <- GLOBAL_TOP_10 %>%
   filter(show_title == "Stranger Things") %>%
   summarise(weeks_in_top_10 = n_distinct(week))
-```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
 Strangerthings_viewership <- GLOBAL_TOP_10 %>%
   filter(show_title == "Stranger Things") %>%
   summarise(
@@ -339,10 +337,7 @@ Strangerthings_viewership <- GLOBAL_TOP_10 %>%
     total_views = total_hours / runtime_hours,
     .groups = "drop"
   )
-```
 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(dplyr)
 library(knitr)
 
@@ -366,18 +361,14 @@ if(!"Stranger Things" %in% stranger_top10$show_title) {
     arrange(desc(weeks_in_top_10))
 }
 
-```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 stranger_countries <- COUNTRY_TOP_10 %>%
   filter(show_title == "Stranger Things") %>%
   summarise(num_countries = n_distinct(country_iso2)) %>%
   pull(num_countries)
 ```
 
---------------
 
-### 
 
 * The show received **`r format(round(Strangerthings_viewership$total_views), big.mark=",", scientific=FALSE)`** views around the world since its first season.
 
@@ -386,13 +377,13 @@ stranger_countries <- COUNTRY_TOP_10 %>%
 * The show has received popularity around the world with its multinational appeal, being in the Top 10 List in **`r format(stranger_countries,big.mark=",")`** countries.
  
 
-* Stranger Things is one of Netflix biggest English hit shows ever made. It is the **7th longest-running show** on Netflix’s Global Top 10 list (English-Langauge).
+* Stranger Things is one of Netflix biggest English hit shows ever made. It is the **4th longest-running show** on Netflix’s Global Top 10 list (English-Langauge).
 
 <br>
 
 Netflix’s Global Top 10 list (longest-running English-Language shows on the Top 10 List):
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 stranger_top10 <- stranger_top10 %>%
   mutate(
     show_title = ifelse(show_title == "Stranger Things",
@@ -408,9 +399,7 @@ kable(stranger_top10)
 
 <br>
 
-* Stranger Things will debut its final season in three volumes this fall: four episodes on Nov. 26, three episodes
-on Christmas, and the finale episode
-on New Year’s Eve. Each volume releases at 5 p.m. PST
+* Stranger Things will debut its final season in three volumes this fall: four episodes on Nov. 26, three episodes on Christmas, and the finale episode on New Year’s Eve. Each volume releases at 5 p.m. PST
 
 * Find out when Stranger Things 5 premieres in your part of the world [here](https://www.netflix.com/tudum/features/stranger-things-season-5-release-date).
 
@@ -439,11 +428,7 @@ Last Updated: `r format(Sys.time(), "%A %m %d, %Y at %H:%M%p")`
 
 <br>
 
-On January 6, 2016, Netflix made its grand entry into the Indian market on. This was part of a global expansion to many countries simultaneously and since then, India been a growing market.
-
-* There's a large and growing customer base In India. 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 #Average viewership of a popular Indian show
 
 avg_views <- GLOBAL_TOP_10 %>%
@@ -473,7 +458,9 @@ avg_views_khakee <- khakee_2025 %>%
 avg_views_khakee_formatted <- format(round(avg_views_khakee), big.mark = ",")
 
 ```
+On January 6, 2016, Netflix made its grand entry into the Indian market on. This was part of a global expansion to many countries simultaneously and since then, India been a growing market.
 
+* There's a large and growing customer base In India. 
 
 * In 2025, one of the top Indian shows *Khakee: The Bihar Chapter* had an average weekly viewership of: **`r avg_views_khakee_formatted`**
 
@@ -488,7 +475,7 @@ avg_views_khakee_formatted <- format(round(avg_views_khakee), big.mark = ",")
 
 #### Top 10 TV Shows (Most consecutive weeks in India)
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 library(knitr)
 top10_india <- COUNTRY_TOP_10 %>%
   filter(country_name == "India", category == "TV") %>%
@@ -515,11 +502,25 @@ kable(
 )
 ```
 
-
 --------------
+Last Updated: `r format(Sys.time(), "%A %m %d, %Y at %H:%M%p")`
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+## <span style="color: black;"> Press Release 3</span>
+
+## <span style="color: darkblue;">Opportunities in Scandinavia: Netflix Shows are now as loved as IKEA and ABBA </span>
+
+
+<div style="text-align: left;">
+  <a href="https://www.netflix.com/browse/genre/100394" target="_blank" rel="noopener">
+    <img src="Scandinavia.png" width="800" alt="Scandinavia">
+  </a>
+</div>
+
+<br>
+
+
+```{r}
 library(dplyr)
 library(lubridate)
 
@@ -569,22 +570,6 @@ secrets_global <- GLOBAL_TOP_10 %>%
 
 ```
 
---------------
-Last Updated: `r format(Sys.time(), "%A %m %d, %Y at %H:%M%p")`
-
-
-## <span style="color: black;"> Press Release 3</span>
-
-## <span style="color: darkblue;">Opportunities in Scandinavia: Netflix Shows are now as loved as IKEA and ABBA </span>
-
-
-<div style="text-align: left;">
-  <a href="https://www.netflix.com/browse/genre/100394" target="_blank" rel="noopener">
-    <img src="Scandinavia.png" width="800" alt="Scandinavia">
-  </a>
-</div>
-
-<br>
 
 
 Netflix has a significant presence in Scandinavia, having launched in the region in 2012 and opening its first Nordic hub in Stockholm in 2021. There are many growth opportunities to explore in this region of the world to maximise profits. 
@@ -604,7 +589,7 @@ Netflix has a significant presence in Scandinavia, having launched in the region
 ### Top 5 Non-English Films in Scandinavia 2025 (Consecutive Weeks on Top 10 List)
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 library(knitr)
 library(kableExtra)
 
@@ -620,7 +605,7 @@ kable(
 ### Top 5 Non-English TV Shows in Scandinavia 2025 (Consecutive Weeks on Top 10 List)
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r}
 
 
 kable(
