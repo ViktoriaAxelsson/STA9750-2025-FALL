@@ -1,1 +1,1 @@
-Sitemap: https://<ViktoriAxelsson>.github.io/STA9750-2025-FALL/sitemap.xml
+Sitemap: https://<GITHUB_NAME>.github.io/STA9750-2025-FALL/sitemap.xml
