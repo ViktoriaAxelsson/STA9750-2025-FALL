@@ -10,3 +10,5 @@ quarto::quarto_render(".")
 system("git add docs/*")
 if(!any(grepl("rstudio", search()))){q("no")}
 
+
+
