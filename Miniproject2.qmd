@@ -1325,4 +1325,6 @@ ggplot(dallas_by_year, aes(x = year, y = permits)) +
 
 ## Task 7: Policy Brief
 
+(includes Extra Credit 3 (younger audience data)
+
 
