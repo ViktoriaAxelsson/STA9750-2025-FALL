@@ -29,6 +29,8 @@ library(tidyverse)
 library(dplyr)
 library(httr2)
 
+suppressPackageStartupMessages(library(tidyverse))
+
 
 highlight <- function(x) {
   paste0('<span style="color:#e41a1c;"><b>', x, "</b></span>")
@@ -87,12 +89,13 @@ districts <- get_council_districts()
 ### Download Tree Points
 
 ```{r}
+
 library(sf)
 library(dplyr)
 library(httr2)
 library(fs)
 
-get_tree_points <- function(limit = 10000) {
+get_tree_points <- function(limit = 50000) {
   cat("\n=== Downloading NYC Tree Points ===\n")
 
   # Base URL for the NYC OpenData Tree Points API (Socrata)
@@ -170,7 +173,6 @@ get_tree_points <- function(limit = 10000) {
 }
 
 trees <- get_tree_points()
-
 ```
 ## Data Integration and Initial Exploration
 
