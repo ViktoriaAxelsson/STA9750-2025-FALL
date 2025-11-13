@@ -19,8 +19,7 @@ data/**
 **/*.quarto_ipynb
 Press relaseas.qmd
 
-# Temporary RData files
+*.RData
 *.RDataTmp*
-
-# Quarto / website library folder
 site_libs/
+data/** 
