@@ -89,11 +89,11 @@ districts <- get_council_districts()
 ### Download Tree Points
 
 ```{r}
-
 library(sf)
 library(dplyr)
 library(httr2)
 library(fs)
+
 
 get_tree_points <- function(limit = 50000) {
   cat("\n=== Downloading NYC Tree Points ===\n")
@@ -173,6 +173,7 @@ get_tree_points <- function(limit = 50000) {
 }
 
 trees <- get_tree_points()
+
 ```
 ## Data Integration and Initial Exploration
 
@@ -187,7 +188,7 @@ library(sf)
 
 
 plot_all <- FALSE
-sample_size <- 5000  # smaller for testing
+sample_size <- 1000  # smaller for testing
 
 trees_to_plot <- slice_sample(trees, n = min(sample_size, nrow(trees)))
 
@@ -210,6 +211,10 @@ ggplot() +
   theme(panel.grid.major = element_line(linewidth = 0.2, colour = "grey90"))
 ```
 
+## Extra Credit (Interactive Tree Map Visualization)
+
+### Interactive Map for NYC Tree Density 
+
 ```{r}
 
 # app.R
@@ -218,7 +223,120 @@ library(leaflet)
 library(htmltools)
 
 
+# ---- 1. normalize district columns & add borough ----
+districts_named <- districts %>%
+  mutate(
+    council_district = as.integer(as.character(CounDist)),
+    borough = case_when(
+      CounDist >= 1  & CounDist <= 10 ~ "Manhattan",
+      CounDist >= 11 & CounDist <= 18 ~ "Bronx",
+      CounDist >= 19 & CounDist <= 32 ~ "Queens",
+      CounDist >= 33 & CounDist <= 48 ~ "Brooklyn",
+      CounDist >= 49 & CounDist <= 51 ~ "Staten Island",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(borough))
+
+# ---- 2. prepare trees ----
+trees_clean <- trees %>%
+  select(genusspecies, planteddate, geometry) %>%
+  st_as_sf()
+
+# ---- 3. ensure same CRS ----
+districts_named <- st_transform(districts_named, 4326)
+trees_clean      <- st_transform(trees_clean, 4326)
+
+# ---- 4. join trees -> district (point-in-polygon) and count per district ----
+trees_with_districts <- st_join(trees_clean, districts_named, join = st_within)
+
+trees_per_district <- trees_with_districts %>%
+  st_drop_geometry() %>%
+  count(CounDist, name = "trees")
+
+districts_density <- districts_named %>%
+  mutate(
+    area_km2 = as.numeric(Shape__Area) / 1e6
+  ) %>%
+  left_join(trees_per_district, by = "CounDist") %>%
+  mutate(
+    trees = ifelse(is.na(trees), 0L, trees),
+    density = trees / area_km2
+  )
+
+# ---- 6. prepare popups ----
+districts_density$popup <- paste0(
+  "<b>Borough:</b> ", districts_density$borough, "<br>",
+  "<b>District:</b> ", districts_density$CounDist, "<br>",
+  "<b>Trees:</b> ", format(districts_density$trees, big.mark = ","), "<br>",
+  "<b>Area:</b> ", round(districts_density$area_km2, 2), " km²<br>",
+  "<b>Density:</b> ", round(districts_density$density, 1), " trees/km²"
+)
+
+# ---- 7. prepare palette ----
+vmax <- ceiling(max(districts_density$density, na.rm = TRUE))
+pal <- colorNumeric("YlGnBu", domain = c(0, vmax), na.color = "transparent")
+
+# ---- 8. borough outline ----
+borough_outline <- districts_named %>%
+  st_make_valid() %>%
+  group_by(borough) %>%
+  summarise(.groups = "drop") %>%
+  st_cast("MULTIPOLYGON", warn = FALSE) %>%
+  st_transform(4326)
+
+# ---- 9. sample trees for point layer ----
+sample_size <- 200
+trees_to_plot <- trees_clean %>% slice_sample(n = min(sample_size, nrow(trees_clean)))
+
+# ---- 10. build leaflet map ----
+leaflet(districts_density) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(
+    fillColor   = ~pal(density),
+    color       = "white",
+    weight      = 1,
+    fillOpacity = 0.85,
+    popup       = ~popup,
+    label       = ~paste0(
+      "District ", CounDist, "\n",
+      "Trees: ", format(trees, big.mark = ","), "\n",
+      "Density: ", round(density, 1), " trees/km²"
+    ),
+    labelOptions = labelOptions(
+      style = list("font-weight" = "bold", "padding" = "3px 6px"),
+      textsize = "12px",
+      direction = "auto"
+    )
+  ) %>%
+  addPolylines(
+    data = borough_outline,
+    color = "black",
+    weight = 1.25,
+    opacity = 0.7
+  ) %>%
+  addCircleMarkers(
+    data = trees_to_plot,
+    radius = 1,
+    color = "#2b8cbe",
+    fillOpacity = 0.6,
+    stroke = FALSE,
+    popup = ~paste0("<b>Species:</b> ", genusspecies,
+                    "<br><b>Planted:</b> ", planteddate)
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    pal      = pal,
+    values   = c(0, vmax),
+    title    = "Tree density (trees/km²)",
+    opacity  = 1
+  ) %>%
+  addControl("<b> Tree Density — NYC Districts</b>", position = "topright") %>%
+  setView(lng = -73.94, lat = 40.70, zoom = 11)
 ```
+
+
+
 ### District Analyses of Trees 
 
 Here I'm joining the districts and trees together to do more analysis. This includes which district has the most trees, highest density, highest fraction of dead trees, and most common tree species. I will be using interactive data visualizations for this as well. 
@@ -227,49 +345,64 @@ Here I'm joining the districts and trees together to do more analysis. This incl
 library(sf)
 library(dplyr)
 library(gt)
+library(dplyr)
+library(gt)
 
-# Join tree points onto district polygons
-trees_districts <- st_join(trees, districts, join = st_intersects, left = TRUE)
+trees_per_district <- trees_with_districts %>%
+  st_drop_geometry() %>%
+  count(CounDist, name = "trees")
 
-# Check that expected columns exist
-if (!"genusspecies" %in% names(trees_districts)) {
-  trees_districts$genusspecies <- NA  # add empty column if missing
-}
+top_district <- trees_per_district %>%
+  arrange(desc(trees)) %>%
+  slice(1)
 
-if (!"CounDist" %in% names(trees_districts)) {
-  trees_districts$CounDist <- NA  # add empty column if missing
-}
-
-# Summarize tree counts per district (numeric CounDist)
-trees_per_district <- trees_districts %>%
-  st_set_geometry(NULL) %>%  # drop geometry for table
-  group_by(CounDist) %>%
-  summarise(Trees = n(), .groups = "drop") %>%
-  arrange(desc(Trees))
-
-# Take only the top district
-top_district <- trees_per_district %>% slice_head(n = 1)
+# Create gt table and highlight District 51 
+top_district %>%
+  gt() %>%
+  tab_style(
+    style = cell_fill(color = "lightblue"),
+    locations = cells_body(
+      columns = c("CounDist"),
+      rows = CounDist == 51
+    )
+  ) %>%
+  cols_label(
+    CounDist = "CounDist",
+    trees    = "Number of Trees"
+  ) %>%
+  tab_header(
+    title = "NYC District with the Most Trees",
+    subtitle = paste("Total trees in this district:", top_district$Trees)
+  )
 ```
 
 **1. Which council district has the most trees?**
 
 ```{r}
 # Make a table and highlight District 51
+
+# Get top district by number of trees
+top_district <- trees_per_district %>%
+  slice_max(trees, n = 1)
+
+# Create gt table and highlight District 51
 top_district %>%
   gt() %>%
   tab_style(
     style = cell_fill(color = "lightblue"),
-    locations = cells_body(columns = c("CounDist"), rows = CounDist == 51)
+    locations = cells_body(
+      columns = c("CounDist"),
+      rows = CounDist == 51
+    )
   ) %>%
   cols_label(
-    CounDist = "Council District",
-    Trees = "Number of Trees"
+    CounDist = "CounDist",
+    trees    = "Number of Trees"
   ) %>%
   tab_header(
     title = "NYC District with the Most Trees",
     subtitle = paste("Total trees in this district:", top_district$Trees)
   )
-
 ```
 ::: callout-note
 # Key Finding
@@ -281,28 +414,30 @@ District **`r trees_per_district$CounDist[1]`** is the one with the most trees.
 
 **2. Which council district has the highest density of trees?**
 
+How concentrated trees are, providing an idea of green coverage beyond tree counts. 
+
 ```{r}
-# Add Shape_Area to your summarized table
+# Add Shape_Area to summarized table
 
 # 2. Summarize tree counts per district
 
-trees_density <- trees_per_district %>% left_join( districts %>% st_set_geometry(NULL) %>% select(CounDist, Shape__Area), by = "CounDist" ) %>% mutate(Tree_Density = Trees / Shape__Area) %>% arrange(desc(Tree_Density)) # See the top district by tree density trees_density %>% slice_head(n = 2)
+trees_density <- trees_per_district %>% left_join( districts %>% st_set_geometry(NULL) %>% select(CounDist, Shape__Area), by = "CounDist" ) %>% mutate(Tree_Density = trees / Shape__Area) %>% arrange(desc(Tree_Density)) # See the top district by tree density trees_density %>% slice_head(n = 2)
 
 
 trees_density %>%
-  slice_head(n = 3) %>%  # top 3 by density
+  slice_head(n = 3) %>%  
   select(CounDist, Tree_Density) %>%
   gt() %>%
   tab_header(
     title = "Top 3 NYC Districts with Highest Tree Density"
   ) %>%
   cols_label(
-    CounDist = "Council District",
+    CounDist = "CounDist",
     Tree_Density = "Tree Density"
   ) %>%
   fmt_number(
     columns = "Tree_Density",
-    decimals = 4  # adjust decimals as needed
+    decimals = 4  
   ) %>%
   tab_style(
     style = cell_fill(color = "lightblue"),
@@ -320,6 +455,7 @@ The council district with the highest tree density is **`r trees_density$CounDis
 
 
 **3. Which district has highest fraction of dead trees out of all trees?**
+Examining tree conditions across districts to assess tree health where it's needed.
 
 ```{r}
 
@@ -376,9 +512,10 @@ The district with the highest fraction of dead trees is **`r top_district`**
 
 **4. What is the most common tree species in Manhattan?**
 
+Which species dominate in Manhattan, prevailing patterns of diodiversity in this area. 
 ```{r}
 
-# Add a borough column (you already did this)
+# Add a borough column
 trees_districts <- trees_districts %>%
   mutate(
     Borough = case_when(
@@ -464,11 +601,6 @@ library(dplyr)
 
 # Ensure trees is an sf object (with geometry column)
 class(trees)  # should include "sf"
-# If not, convert using your geometry column:
-# trees <- st_as_sf(trees, coords = c("longitude", "latitude"), crs = 4326)
-
-# Ensure closest_tree keeps geometry, do NOT drop it
-# closest_tree <- trees_distance %>% slice_min(distance_m, n = 1)
 
 # Transform everything to WGS84 for Leaflet
 trees_wgs <- st_transform(trees, 4326)
@@ -577,6 +709,7 @@ leaflet(options = leafletOptions(minZoom = 9)) %>%
   )
 
 ```
+
 ## Government Project Design - Proposal
 
 ### City Council Propose Additional Funding - Replacing Dead Trees in District 32 
@@ -594,7 +727,7 @@ A comparative analysis across districts shows that District 32 has a significant
 **Scope and Goals**
 - Replace 100 dead trees to reduce hazards and make space for healthy trees
 - Plant 200 new trees, with a mix of tree species to increase green space density and biodiversity
-- Work done in District 32, around Rockaway Beach   
+- Work done in District 32, around Rockaway   
 
 **Supporting Visuals**
 While comparing districts, we found that as of today, District 32 currently has the highest dead-tree fractions in the city, making it a priority for target action. 
@@ -680,58 +813,48 @@ ggplot(dead_fraction_clean, aes(x = reorder(CounDist, Dead_Fraction), y = Dead_F
   ) +
   theme_minimal() +
   theme(
-    axis.text.y = element_text(size = 6)  # smaller font to reduce clutter
+    axis.text.y = element_text(size = 6) 
   )
 ```
 
 
-This is a zoomed-in map of District 32 highlighting the dead and alive trees targeted for replacement. 
+This is a zoomed-in map of District 32 highlighting the dead trees targeted for replacement. 
+
 ```{r}
+library(ggplot2)
 
 
-# Summarize dead trees per district
-dead_fraction <- trees_districts %>%
-  st_set_geometry(NULL) %>%                  # drop geometry
-  mutate(CounDist = as.character(CounDist)) %>%  # create column
-  group_by(CounDist) %>%
-  summarise(
-    Total_Trees   = n(),
-    Dead_Trees    = sum(tpcondition == "Dead", na.rm = TRUE),
-    Dead_Fraction = Dead_Trees / Total_Trees,
-    .groups = "drop"
-  ) %>%
-  arrange(desc(Dead_Trees))
 
-# Filter for District 32
-trees_d32 <- trees_districts %>% filter(CounDist == "32")
+# --- Filter District 32 and dead trees ---
+dead_d32  <- trees_districts %>% 
+  filter(CounDist == "32" & tpcondition == "Dead")
+district32 <- districts %>% filter(CounDist == 32)
 
-# Optional: just dead trees
-dead_trees_d32 <- trees_d32 %>% filter(tpcondition == "Dead")
+# --- Optional: sample dead trees for speed ---
+sample_size <- 2000
+dead_sample <- slice_sample(dead_d32, n = min(sample_size, nrow(dead_d32)))
 
-# Transform to WGS84 for leaflet
-trees_wgs <- st_transform(trees_d32, 4326)
-dead_wgs  <- st_transform(dead_trees_d32, 4326)
+# --- Bounding box for zoom ---
+bbox32 <- st_bbox(district32)
+xlim <- c(bbox32["xmin"] - 0.001, bbox32["xmax"] + 0.001)
+ylim <- c(bbox32["ymin"] - 0.001, bbox32["ymax"] + 0.001)
 
-# Leaflet map
-leaflet() %>%
-  addProviderTiles(providers$CartoDB.Positron) %>%
-  addCircleMarkers(
-    data = trees_wgs,
-    radius = 2,
-    color = "green",
-    fillOpacity = 0.9,
-    group = "All Trees"
-  ) %>%
-  addCircleMarkers(
-  data = dead_wgs,
-  radius = 4,
-  color = "darkred",
-  fillColor = "darkred",
-  fillOpacity = 0.1,
-  opacity = 1,
-  popup = ~genusspecies,
-  group = "Dead Trees"
-)
+# --- Plot ---
+ggplot() +
+  geom_sf(data = district32, fill = NA, color = "grey60", linewidth = 0.5) +   # District outline
+  geom_sf(data = dead_sample, color = "darkred", alpha = 0.6, size = 0.12) +   # Dead trees
+  coord_sf(xlim = xlim, ylim = ylim, expand = FALSE) +
+  labs(
+    title = "Dead Trees in NYC District 32",
+    subtitle = paste("Sample of", nrow(dead_sample), "dead trees")
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.major = element_line(linewidth = 0.2, colour = "grey90"),
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
 ```
 
 **Conclusion**
