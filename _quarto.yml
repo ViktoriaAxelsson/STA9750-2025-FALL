@@ -11,8 +11,11 @@ website:
     background: primary
     search: false
     items:
+      - text: "Mini-Project 1"
         href: "mp01.qmd"
-    
+      - text: "Mini-Project 3"
+        href: "mp03.qmd"
+
 format:
   html:
     theme: <THEME>
