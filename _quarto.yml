@@ -4,21 +4,16 @@ project:
 
 website:
   title: "STA 9750 Submission Material"
-  description: "Course Projects for STA 9750 at Baruch College"
+  description:
+    Course Projects for STA 9750 at Baruch College
   site-url: "https://viktoriaaxelsson.github.io/STA9750-2025-FALL/"
-
-navbar:
-  background: primary
-  search: false
-  items:
-    - text: "Mini-Project 1"
-      href: "mp01.qmd"
-    - text: "Mini-Project 3"
-      href: "miniproject3.qmd"
-
+  navbar:
+    background: primary
+    search: false
+    
 format:
   html:
-    theme: <THEME>   # replace with your preferred theme
+    theme: <LUX>
     toc: false
 
 editor:
