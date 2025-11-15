@@ -8,9 +8,8 @@ website:
     Course Projects for STA 9750 at Baruch College
   site-url: "https://viktoriaaxelsson.github.io/STA9750-2025-FALL/"
   navbar:
-    items:
-     - text: "Mini-Project 3"
-       href: "mp03.qmd"
+    background: primary
+    search: false
     
 format:
   html:
