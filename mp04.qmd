@@ -506,7 +506,6 @@ highlight_points <- abs_percent_by_year %>%
   filter(avg_abs_percent == max(avg_abs_percent) | avg_abs_percent == min(avg_abs_percent))
 
 # Base plot
-suppressWarnings({
 
   # Base plot
   p <- ggplot(abs_percent_by_year, aes(x = year, y = avg_abs_percent)) +
@@ -536,7 +535,6 @@ suppressWarnings({
   # Convert to interactive
   ggplotly(p, tooltip = "text")
 
-})
 ```
 
 
