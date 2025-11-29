@@ -301,6 +301,9 @@ key_revisions %>%
 
 ```{r}
 
+library(plotly)
+library(ggplot2)
+
 # compute yearly fractions (you already have this)
 frac_positive_by_year <- ces_combined %>%
   mutate(year = year(date)) %>%
@@ -382,6 +385,9 @@ suppressWarnings({
 
 In this chart we can see how revisions are relative to total payroll levels and identifies over time high revision uncertainty. As you can see the shifts are clear during times as early 80s recession, 2008 crisis and COVID-19. 
 ```{r}
+
+library(plotly)
+library(ggplot2)
 
 # Average relative revision per year
 avg_rel_by_year <- ces_combined %>%
@@ -466,6 +472,9 @@ After 2022, relative revisions have been gradually increasing, indicating growin
 
 ```{r}
 
+library(plotly)
+library(ggplot2)
+
 # Average absolute revision as % of payroll per year
 abs_percent_by_year <- ces_combined %>%
   group_by(year = year(date)) %>%
@@ -489,7 +498,9 @@ datatable(
     'Average Absolute CES Revision as % of Employment by Year'
   )
 )
+```
 
+```{r}
 # Identify highest and lowest points
 highlight_points <- abs_percent_by_year %>%
   filter(avg_abs_percent == max(avg_abs_percent) | avg_abs_percent == min(avg_abs_percent))
@@ -824,6 +835,8 @@ The maximum CES revision post-2020 is 437, which is unusually high compared to t
 **Visualization:** 
 
 ```{r}
+
+library(plotly)
 library(ggplot2)
 
 ggplot(ces_combined, aes(
@@ -904,20 +917,20 @@ I will evaluate this claim using CES employment levels and revisions from 1979�
 Schematic / Flowchart – step-by-step logic of how the computational test work
 ```{r}
 
+library(DiagrammeR)
+
 grViz("
 digraph computational_inference {
-  
-  node [shape=box, style=filled, color=LightBlue]
-  
-  Data [label='1. Collect CES revisions by president party']
+  node [shape=box, style=filled, color=LightBlue, fontname=Helvetica]
+  Data [label='1. Collect CES revisions\nby president party']
   Statistic [label='2. Compute test statistic\n(mean, median, fraction positive)']
-  Resample [label='3. Resample (bootstrap or permutation) many times']
-  ComputeResample [label='4. Compute statistic for each resample']
-  Compare [label='5. Compare observed statistic to resampled distribution → p-value']
-  
+  Resample [label='3. Resample (bootstrap or permutation)\nmany times']
+  ComputeResample [label='4. Compute statistic\nfor each resample']
+  Compare [label='5. Compare observed statistic\nto resampled distribution → p-value']
   Data -> Statistic -> Resample -> ComputeResample -> Compare
 }
 ")
+
 ```
 
 <br> 
@@ -1085,8 +1098,9 @@ boot_summary
 **Visualization - Relative CES Revisions (% of Employment) from Task 1**
 
 ```{r}
-# Relative revisions (% of employment) by year
 
+library(plotly)
+library(ggplot2)
 
 # Relative revisions (% of employment) by year
 df_rel <- df %>%
@@ -1165,6 +1179,9 @@ ggplot(df, aes(x = party, y = revision, fill = party)) +
 ```
 
 ```{r}
+
+library(plotly)
+library(ggplot2)
 
 # Prepare yearly summary
 df_year <- df %>%
