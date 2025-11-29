@@ -14,7 +14,7 @@ format:
 ---
 
 
-[![Photo by CNBC](jobgrowth.png)](https://www.cnbc.com/2024/07/05/heres-where-the-jobs-are-for-june-in-one-chart.html)
+[![Photo by CNBC](jobgrowth.jpg)](https://www.cnbc.com/2024/07/05/heres-where-the-jobs-are-for-june-in-one-chart.html)
 
 
 
