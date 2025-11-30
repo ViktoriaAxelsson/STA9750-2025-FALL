@@ -305,80 +305,55 @@ key_revisions %>%
 library(plotly)
 library(ggplot2)
 
-# compute yearly fractions (you already have this)
+
+# build yearly fractions (assuming ces_combined exists)
 frac_positive_by_year <- ces_combined %>%
   mutate(year = year(date)) %>%
   group_by(year) %>%
   summarize(frac_positive = mean(revision > 0, na.rm = TRUE)) %>%
   arrange(year)
 
-# compute decade table (unchanged)
-frac_positive_by_decade <- ces_combined %>%
-  mutate(decade = (year(date) %/% 10) * 10) %>%
-  group_by(decade) %>%
-  summarize(frac_positive = mean(revision > 0, na.rm = TRUE)) %>%
-  arrange(decade)
-
-
-# Yearly fraction table
-yearly_table <- frac_positive_by_year %>%
-  rename(`Positive Fraction` = frac_positive) %>%
-  mutate(`Positive Fraction` = scales::percent(`Positive Fraction`, accuracy = 0.1))
-
-datatable(
-  yearly_table,
-  options = list(pageLength = 10, searching = FALSE),
-  rownames = FALSE,
-  caption = htmltools::tags$caption(
-    style = 'caption-side: top; text-align: center; color: blue; font-weight: bold;',
-    'Fraction of Positive CES Revisions by Year'
-  )
-)
-
-# Decade fraction table
-decade_table <- frac_positive_by_decade %>%
-  rename(`Positive Fraction` = frac_positive) %>%
-  mutate(`Positive Fraction` = scales::percent(`Positive Fraction`, accuracy = 0.1))
-
-datatable(
-  decade_table,
-  options = list(pageLength = 10, searching = FALSE),
-  rownames = FALSE,
-  caption = htmltools::tags$caption(
-    style = 'caption-side: top; text-align: center; color: blue; font-weight: bold;',
-    'Fraction of Positive CES Revisions by Decade'
-  )
-)
-
-# IDENTIFY HIGHLIGHTS 
+# highlight min / max
 highlight_points <- frac_positive_by_year %>%
   filter(frac_positive == max(frac_positive, na.rm = TRUE) |
          frac_positive == min(frac_positive, na.rm = TRUE))
 
-suppressWarnings({
-  p <- ggplot(frac_positive_by_year, aes(x = year, y = frac_positive)) +
-    geom_line(color = "steelblue", linewidth = 1) +
-    geom_point(aes(text = paste0("Year: ", year, "<br>Fraction Positive: ",
-                                 scales::percent(frac_positive))),
-               color = "steelblue", size = 2) +
-    geom_point(data = highlight_points,
-               aes(text = paste0("Year: ", year, "<br>Fraction Positive: ",
-                                 scales::percent(frac_positive))),
-               color = "red", size = 2) +
-    scale_x_continuous(
-      breaks = seq(min(frac_positive_by_year$year),
-                   max(frac_positive_by_year$year), by = 5)
-    ) +
-    scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-    labs(
-      title = "Fraction of Positive CES Revisions by Year",
-      x = "Year",
-      y = "Fraction Positive (%)"
-    ) +
-    theme_minimal()
+# ggplot: note group = 1 so ggplotly keeps the line
+p <- ggplot(frac_positive_by_year, aes(x = year, y = frac_positive, group = 1)) +
+  geom_line(color = "steelblue", size = 1) +                    # size instead of linewidth for compat
+  geom_point(aes(text = paste0("Year: ", year, "<br>Fraction Positive: ",
+                               scales::percent(frac_positive))),
+             color = "steelblue", size = 2) +
+  geom_point(data = highlight_points,
+             aes(text = paste0("Year: ", year, "<br>Fraction Positive: ",
+                                scales::percent(frac_positive))),
+             color = "red", size = 3) +
+  scale_x_continuous(
+    breaks = seq(min(frac_positive_by_year$year, na.rm = TRUE),
+                 max(frac_positive_by_year$year, na.rm = TRUE), by = 5)
+  ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Fraction of Positive CES Revisions by Year",
+    x = "Year",
+    y = "Fraction Positive (%)"
+  ) +
+  theme_minimal()
 
-  ggplotly(p, tooltip = "text")
-})
+# assign interactive object (important)
+interactive_plot <- ggplotly(p, tooltip = "text")
+
+# quick local check (optional)
+print(interactive_plot)    # in RStudio viewer
+
+# save to docs (non-selfcontained so dependencies are in folder)
+save_dir <- "docs"
+dir.create(save_dir, showWarnings = FALSE, recursive = TRUE)
+saveWidget(as_widget(interactive_plot),
+           file.path(save_dir, "ces_fraction_positive.html"),
+           selfcontained = FALSE)
+
+
 ```
 
 
