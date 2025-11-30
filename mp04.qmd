@@ -62,6 +62,7 @@ library(gt)
 library(DT)
 library(htmltools)
 library(DiagrammeR)
+library(plotly)
 
 
 library(scales)
