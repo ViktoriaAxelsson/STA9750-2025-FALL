@@ -1,0 +1,294 @@
+---
+title: "Corruption_happiness_list"
+---
+
+
+```{r}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+
+df <- read_excel("/Users/ViktoriaAxelsson/Desktop/WHR25_Data_Figure_2.1v3 (1).xlsx")
+df
+
+
+# Create tibble for Uzbekistan, 2011-2025
+uzbekistan_corruption <- df %>%
+  filter(`Country name` == "Uzbekistan", Year >= 2011, Year <= 2025) %>%
+  select(Year, `Explained by: Perceptions of corruption`) %>%
+  as_tibble()
+
+
+# View the tibble
+uzbekistan_corruption
+```
+
+Uzbekistan 2019-2025 corruption perception 
+```{r}
+# Filter Uzbekistan from 2019 onward
+uzb_corruption <- df %>%
+  filter(`Country name` == "Uzbekistan", Year >= 2019)
+
+# Plot corruption index
+ggplot(uzb_corruption, aes(x = Year, y = `Explained by: Perceptions of corruption`)) +
+  geom_line(color = "red", size = 1.2) +
+  geom_point(color = "red") +
+  labs(title = "Uzbekistan – Perceptions of Corruption (2019–2025)",
+       x = "Year",
+       y = "Perceptions of Corruption") +
+  theme_minimal()
+```
+
+
+Uzbekistan 2019-2025 ranking in the happiness list 2019-2025
+```{r}
+# Filter Uzbekistan from 2019 onward
+uzb_rank <- df %>%
+  filter(`Country name` == "Uzbekistan", Year >= 2019)
+
+# Plot Rank
+ggplot(uzb_rank, aes(x = Year, y = Rank)) +
+  geom_line(color = "blue", size = 1.2) +
+  geom_point(color = "blue") +
+  scale_y_reverse() +  # Rank 1 at top
+  labs(title = "Uzbekistan – World Happiness Rank (2019–2025)",
+       x = "Year",
+       y = "Rank") +
+  theme_minimal()
+```
+
+
+Uzbekistan corruption and happiness ranking line chart side by side to compare
+
+```{r}
+library(patchwork)
+
+# Filter Uzbekistan from 2019 onward
+uzb_data <- df %>%
+  filter(`Country name` == "Uzbekistan", Year >= 2019)
+
+# Plot 1: Corruption Index
+p1 <- ggplot(uzb_data, aes(x = Year, y = `Explained by: Perceptions of corruption`)) +
+  geom_line(color = "red", size = 1.2) +
+  geom_point(color = "red") +
+  labs(title = "Perceptions of Corruption (2019–2025)",
+       x = "Year",
+       y = "Corruption Index") +
+  theme_minimal()
+
+# Plot 2: Rank
+p2 <- ggplot(uzb_data, aes(x = Year, y = Rank)) +
+  geom_line(color = "blue", size = 1.2) +
+  geom_point(color = "blue") +
+  scale_y_reverse() +  # Rank 1 at top
+  labs(title = "World Happiness Rank (2019–2025)",
+       x = "Year",
+       y = "Rank") +
+  theme_minimal()
+
+# Combine side by side with main title
+combined_plot <- p1 + p2 + plot_annotation(title = "Uzbekistan")
+
+combined_plot
+```
+
+Uzbekistan ranking over time 2011 - 2025 with other countries 
+```{r}
+colnames(df)
+
+
+
+ggplot(df, aes(x = Year, y = Rank, group = `Country name`)) +
+  # All countries in gray
+  geom_line(color = "gray", size = 0.5, alpha = 0.5) +
+  # Highlight Uzbekistan
+  geom_line(data = subset(df, `Country name` == "Uzbekistan"),
+            aes(x = Year, y = Rank),
+            color = "red", size = 1.2) +
+  scale_y_reverse() +  # Optional: rank 1 at top
+  labs(title = "World Happiness Rank Over Time – Uzbekistan Highlighted",
+       x = "Year",
+       y = "Rank") +
+  theme_minimal()
+```
+
+
+```{r}
+
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(readxl)
+library(patchwork)
+
+# ---------------------------
+# 1) File paths (change only if your files are elsewhere)
+# ---------------------------
+cpi_csv <- "/Users/ViktoriaAxelsson/Desktop/ti-corruption-perception-index.filtered/ti-corruption-perception-index.csv"
+happiness_xlsx <- "/Users/ViktoriaAxelsson/Desktop/WHR25_Data_Figure_2.1v3 (1).xlsx"
+
+# ---------------------------
+# 2) Load datasets
+# ---------------------------
+cpi_df <- read_csv(cpi_csv, show_col_types = FALSE)
+happiness_df <- read_excel(happiness_xlsx)
+
+# Quick column check (uncomment to inspect)
+# print(colnames(cpi_df))
+# print(colnames(happiness_df))
+
+# ---------------------------
+# 3) Prepare Uzbekistan CPI tibble (rescale 2.2 -> 22 by *10)
+#    Data has columns: Entity, Year, Corruption Perceptions Index
+# ---------------------------
+uzbekistan_cpi <- cpi_df %>%
+  filter(Entity == "Uzbekistan") %>%
+  select(Year, `Corruption Perceptions Index`) %>%
+  arrange(Year) %>%
+  mutate(
+    CPI_Score = `Corruption Perceptions Index` * 10   # convert 2.2 -> 22
+  )
+
+# ---------------------------
+# 4) Prepare Uzbekistan Happiness Rank tibble
+#    Data has column "Country name" and "Year" and "Rank"
+# ---------------------------
+uzbekistan_rank <- happiness_df %>%
+  filter(`Country name` == "Uzbekistan") %>%
+  select(Year, Rank) %>%
+  arrange(Year)
+
+# ---------------------------
+# 5) Filter to the years of interest (2016-2025 or 2019-2025 where appropriate)
+# ---------------------------
+years_min <- 2016
+years_max <- 2025
+
+# CPI plot data (we discussed showing 2016-2025 and also earlier but here we use 2016-2025)
+uzb_cpi_plot_df <- uzbekistan_cpi %>%
+  filter(Year >= years_min & Year <= years_max)
+
+# Happiness plot data
+uzb_rank_plot_df <- uzbekistan_rank %>%
+  filter(Year >= years_min & Year <= years_max)
+
+# ---------------------------
+# 6) Mark highlight years and set label positions
+# ---------------------------
+highlight_years <- c(2019, 2023, 2024)
+
+uzb_cpi_plot_df <- uzb_cpi_plot_df %>%
+  mutate(highlight = Year %in% highlight_years)
+
+uzb_rank_plot_df <- uzb_rank_plot_df %>%
+  mutate(highlight = Year %in% highlight_years)
+
+# For label nudging, set small nudges (tweak if labels overlap)
+# Note: because we use scale_y_reverse, vjust values may be inverted visually —
+# using nudge_y is simpler to place labels above the points in data space.
+uzb_cpi_plot_df <- uzb_cpi_plot_df %>%
+  mutate(label_y = CPI_Score + 5)   # nudge label a bit "above" the point (in data units)
+
+uzb_rank_plot_df <- uzb_rank_plot_df %>%
+  mutate(label_y = Rank - 1.5)      # since Rank is inverted, subtract to move label "up" visually
+
+# ---------------------------
+# 7) Build the corruption plot (inverted y-axis so line going down = more corruption)
+# ---------------------------
+
+corruption_plot <- ggplot(uzb_cpi_plot_df, aes(x = Year, y = CPI_Score)) +
+  geom_line(color = "steelblue", size = 1.25) +
+  geom_point(aes(color = highlight), size = 3) +
+  scale_color_manual(values = c("TRUE" = "orange", "FALSE" = "red"), guide = "none") +
+  # Label the highlighted points with the year
+  geom_text(
+    data = subset(uzb_cpi_plot_df, highlight == TRUE),
+    aes(x = Year, y = label_y, label = Year),
+    size = 3,
+    vjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_x_continuous(breaks = seq(years_min, years_max, by = 1), minor_breaks = NULL) +
+  scale_y_reverse(expand = expansion(mult = c(0.02, 0.08))) +  # invert y-axis, add space at top-right for labels
+  labs(
+    title = "Uzbekistan – Perceived Corruption (2016–2025)",
+    x = "Year",
+    y = "CPI Score (rescaled; higher = more corruption visually)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 12),
+    axis.title = element_text(size = 10),
+    axis.text.x = element_text(size = 8, angle = 0),
+    axis.text.y = element_text(size = 9)
+  )
+
+# Display and save corruption plot
+print(corruption_plot)
+ggsave("/Users/ViktoriaAxelsson/Desktop/uzbekistan_corruption.png",
+       plot = corruption_plot, width = 8, height = 5, dpi = 300)
+
+# ---------------------------
+# 8) Build the happiness rank plot (inverted y-axis so lower rank (happier) appears higher)
+# ---------------------------
+
+happiness_plot <- ggplot(uzb_rank_plot_df, aes(x = Year, y = Rank)) +
+  geom_line(color = "forestgreen", size = 1.25) +
+  geom_point(aes(color = highlight), size = 3) +
+  scale_color_manual(values = c("TRUE" = "orange", "FALSE" = "darkgreen"), guide = "none") +
+  # Label the highlighted points with the year
+  geom_text(
+    data = subset(uzb_rank_plot_df, highlight == TRUE),
+    aes(x = Year, y = label_y, label = Year),
+    size = 3,
+    vjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_x_continuous(breaks = seq(years_min, years_max, by = 1), minor_breaks = NULL) +
+  scale_y_reverse(expand = expansion(mult = c(0.02, 0.08))) +
+  labs(
+    title = "Uzbekistan – World Happiness Rank (2016–2025)",
+    x = "Year",
+    y = "Happiness Rank (lower = happier)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 12),
+    axis.title = element_text(size = 10),
+    axis.text.x = element_text(size = 8),
+    axis.text.y = element_text(size = 9)
+  )
+
+# Display and save happiness plot
+print(happiness_plot)
+ggsave("/Users/ViktoriaAxelsson/Desktop/uzbekistan_happiness.png",
+       plot = happiness_plot, width = 8, height = 5, dpi = 300)
+
+# ---------------------------
+# 9) Combine side-by-side and save combined image
+# ---------------------------
+
+combined_plot <- corruption_plot + happiness_plot + plot_layout(ncol = 2)
+
+# Add a centered big title with patchwork's plot_annotation (optional)
+combined_plot <- combined_plot + plot_annotation(title = "Uzbekistan: Corruption vs Happiness (2016–2025)")
+
+# Display combined
+print(combined_plot)
+
+# Save combined as PNG
+ggsave("/Users/ViktoriaAxelsson/Desktop/uzbekistan_combined.png",
+       plot = combined_plot, width = 16, height = 6, dpi = 300)
+
+# ---------------------------
+# 10) Also save as PDF (optional)
+# ---------------------------
+# ggsave("/Users/ViktoriaAxelsson/Desktop/uzbekistan_combined.pdf",
+#        plot = combined_plot, width = 16, height = 6)
+```
+
+
+
+```{r}
