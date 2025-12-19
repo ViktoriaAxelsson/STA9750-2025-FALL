@@ -18,7 +18,7 @@ format:
  ![](world)
 
 
-## Introduction - motivations and importance of analysis
+## Introduction: motivations and importance of analysis
 
 This analysis aims to better understand the factors that truly impact quality of life across countries worldwide. While happiness is often discussed broadly, our study seeks to identify which economic, environmental, and social variables are most strongly associated with national well-being.
 
